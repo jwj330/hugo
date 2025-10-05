@@ -1,0 +1,74 @@
+name: Initialize Hugo Site
+
+on:
+  workflow_dispatch:  # 允许手动触发
+  push:
+    branches: [ main ]
+
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Debug - Check current directory structure
+        run: |
+          echo "Current directory contents:"
+          ls -la
+          echo "Git status:"
+          git status
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: 'latest'
+          extended: true
+
+      - name: Initialize Hugo site if not exists
+        run: |
+          if [ ! -f "config.toml" ] && [ ! -f "config.yaml" ] && [ ! -f "config.yml" ]; then
+            echo "No Hugo config found, initializing new site..."
+            hugo new site . --force
+            echo "Hugo site initialized successfully"
+            
+            # 创建基本配置文件
+            cat > config.toml << EOF
+            baseURL = "https://jwj330.github.io/"
+            languageCode = "en-us"
+            title = "My New Hugo Site"
+            theme = "ananke"
+            EOF
+            
+            # 添加主题作为submodule（使用流行的ananke主题）
+            git submodule add https://github.com/theNewDynamic/gohugo-theme-ananke themes/ananke
+          else
+            echo "Hugo site already initialized"
+          fi
+
+      - name: Create sample content
+        run: |
+          if [ ! -f "content/posts/welcome.md" ]; then
+            hugo new posts/welcome.md
+            echo "Sample post created"
+          fi
+
+      - name: Commit and push if changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          if git diff-index --quiet HEAD --; then
+            echo "No changes to commit"
+          else
+            git commit -m "Initialize Hugo site structure"
+            git push origin main
+            echo "Changes committed and pushed"
+          fi
+
+      - name: Debug - Final structure check
+        run: |
+          echo "Final directory structure:"
+          find . -type f -name "*.md" -o -name "*.toml" -o -name "*.yaml" -o -name "*.yml" | sort
