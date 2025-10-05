@@ -1,0 +1,34 @@
+name: Initialize Hugo Site
+on: [workflow_dispatch]
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: 'latest'
+          extended: true
+
+      - name: Create First Post
+        run: |
+          mkdir -p content/posts
+          cat > content/posts/hello-world.md << 'EOF'
+          ---
+          title: "Hello World!"
+          date: $(date -Iseconds)
+          draft: false
+          ---
+          这是我的第一篇Hugo文章！部署成功！
+          EOF
+
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Add first post"
+          git push
