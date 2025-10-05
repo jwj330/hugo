@@ -2,49 +2,64 @@ name: Deploy to GitHub Pages
 
 on:
   schedule:
-    - cron: '* * * * *' # 每分钟触发
-  workflow_dispatch: # 允许手动触发
+    - cron: '* * * * *'
+  workflow_dispatch:
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     
     steps:
     - name: Debug - Start workflow
-      run: echo "🚀 Workflow started at $(date)"
-      
+      run: |
+        echo "🚀 Workflow started at $(date)"
+        echo "📋 Event: ${{ github.event_name }}"
+        
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
       
+    - name: Debug - Show file structure
+      run: |
+        echo "📂 Current directory structure:"
+        pwd
+        ls -la
+        echo "📄 Config file content:"
+        cat config.toml || echo "No config.toml found"
+        echo "📁 Themes directory:"
+        ls -la themes/ || echo "No themes directory"
+        
     - name: Setup Hugo
       uses: peaceiris/actions-hugo@v2
       with:
         hugo-version: 'latest'
         extended: false
         
-    - name: Debug - Show directory structure
+    - name: Validate Hugo configuration
       run: |
-        echo "📂 Current directory structure:"
-        ls -laR
+        echo "🔧 Testing Hugo configuration..."
+        hugo config || echo "Hugo config test failed"
         
     - name: Generate new post
       run: |
         TIMESTAMP=$(date +%Y%m%d%H%M%S)
         echo "🕒 Generating post: helloworld$TIMESTAMP"
-        hugo new posts/helloworld$TIMESTAMP.md
-        echo "helloworld$TIMESTAMP" > content/posts/helloworld$TIMESTAMP.md
+        mkdir -p content/posts
+        echo "---" > content/posts/helloworld$TIMESTAMP.md
+        echo "title: \"helloworld$TIMESTAMP\"" >> content/posts/helloworld$TIMESTAMP.md
+        echo "date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> content/posts/helloworld$TIMESTAMP.md
+        echo "draft: false" >> content/posts/helloworld$TIMESTAMP.md
+        echo "---" >> content/posts/helloworld$TIMESTAMP.md
+        echo "helloworld$TIMESTAMP" >> content/posts/helloworld$TIMESTAMP.md
         echo "✅ Generated content:"
         cat content/posts/helloworld$TIMESTAMP.md
         
     - name: Build site
       run: |
         echo "🔨 Building Hugo site..."
-        hugo --minify --verbose
-        echo "📁 Public directory contents:"
-        ls -la public
+        hugo --minify --verbose --logLevel debug
+        echo "📊 Build summary:"
+        echo "Public directory size:"
+        du -sh public/ || echo "No public directory"
         
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
@@ -53,8 +68,3 @@ jobs:
         external_repository: jwj330/jwj330.github.io
         publish_dir: ./public
         keep_files: false
-        publish_branch: main
-        commit_message: "Update: ${{ github.run_id }}"
-        
-    - name: Debug - Completion
-      run: echo "✅ Deployment completed at $(date)"
