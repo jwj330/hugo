@@ -16,72 +16,141 @@ jobs:
 
       - name: Debug - Check current directory structure
         run: |
-          echo "Current directory contents:"
+          echo "=== 初始目录结构检查 ==="
+          echo "当前目录内容:"
           ls -la
-          echo "Git status:"
+          echo "Git状态:"
           git status
+          echo "是否存在Hugo配置文件:"
+          ls -la *.toml *.yaml *.yml 2>/dev/null || echo "未找到配置文件"
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v2
         with:
-          hugo-version: '0.151.0'  # 指定已知可用的版本
+          hugo-version: '0.151.0'
           extended: true
 
-      - name: Initialize Hugo site if not exists
+      - name: Initialize Hugo site if needed
         run: |
-          # 修复EOF格式问题
+          echo "=== 开始Hugo站点初始化 ==="
+          
+          # 检查是否已存在Hugo配置
           if [ ! -f "config.toml" ] && [ ! -f "config.yaml" ] && [ ! -f "config.yml" ]; then
-            echo "No Hugo config found, initializing new site..."
+            echo "未检测到Hugo配置，开始初始化新站点..."
+            
+            # 强制在当前目录初始化Hugo站点[2](@ref)
             hugo new site . --force
-            echo "Hugo site initialized successfully"
+            echo "✅ Hugo站点初始化完成"
             
-            # 创建基本配置文件 - 修复EOF格式
+            # 创建基本配置文件 - 使用正确的EOF格式[1](@ref)
+            echo "创建基本配置文件..."
             cat << 'EOF' > config.toml
-baseURL = "https://jwj330.github.io/"
-languageCode = "en-us"
-title = "My New Hugo Site"
-theme = "ananke"
-EOF
+            baseURL = "https://jwj330.github.io/"
+            languageCode = "en-us"
+            title = "My Hugo Site"
+            theme = "ananke"
+            copyright = "All rights reserved - $(date +%Y)"
+            EOF
+            echo "✅ 配置文件创建完成"
             
-            # 添加主题作为submodule
-            git submodule add https://github.com/theNewDynamic/gohugo-theme-ananke themes/ananke
-            echo "Added ananke theme as submodule"
+            # 添加主题子模块[4](@ref)
+            echo "添加Ananke主题..."
+            git submodule add https://github.com/theNewDynamic/gohugo-theme-ananke.git themes/ananke
+            echo "✅ 主题添加完成"
           else
-            echo "Hugo site already initialized"
+            echo "ℹ️ Hugo站点已存在，跳过初始化"
           fi
 
-      - name: Create sample content
+      - name: Create sample content structure
         run: |
+          echo "=== 创建示例内容结构 ==="
+          mkdir -p content/posts
+          
+          # 创建示例文章[7](@ref)
           if [ ! -f "content/posts/welcome.md" ]; then
-            mkdir -p content/posts
             cat << 'EOF' > content/posts/welcome.md
----
-title: "Welcome to My Hugo Site"
-date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-draft: false
----
+            ---
+            title: "欢迎来到我的Hugo站点"
+            date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            draft: false
+            description: "这是自动生成的欢迎文章"
+            tags: ["欢迎", "介绍"]
+            ---
 
-This is a sample welcome post!
-EOF
-            echo "Sample post created"
+            欢迎！这是一个自动生成的示例文章。
+
+            这个站点使用Hugo静态网站生成器构建，并通过GitHub Actions自动化部署。
+            EOF
+            echo "✅ 示例文章创建完成"
+          else
+            echo "ℹ️ 示例文章已存在"
           fi
 
-      - name: Commit and push if changes
+      - name: Create archetypes for future posts
         run: |
+          echo "=== 设置内容模板 ==="
+          mkdir -p archetypes
+          
+          cat << 'EOF' > archetypes/posts.md
+          ---
+          title: "{{ replace .Name "-" " " | title }}"
+          date: {{ .Date }}
+          draft: false
+          description: "文章描述"
+          tags: []
+          categories: []
+          ---
+
+          文章内容从这里开始...
+          EOF
+          echo "✅ 内容模板创建完成"
+
+      - name: Validate Hugo configuration
+        run: |
+          echo "=== 验证Hugo配置 ==="
+          hugo version
+          echo "配置文件内容:"
+          cat config.toml 2>/dev/null || echo "无配置文件"
+          echo "主题目录检查:"
+          ls -la themes/ 2>/dev/null || echo "无主题目录"
+
+      - name: Test Hugo build
+        run: |
+          echo "=== 测试Hugo构建 ==="
+          if hugo --verbose 2>&1; then
+            echo "✅ Hugo构建测试通过"
+            echo "生成的文件:"
+            ls -la public/ 2>/dev/null || echo "无public目录"
+          else
+            echo "❌ Hugo构建失败"
+            exit 1
+          fi
+
+      - name: Commit and push changes
+        run: |
+          echo "=== 提交更改 ==="
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          
           git add .
           if git diff-index --quiet HEAD --; then
-            echo "No changes to commit"
+            echo "ℹ️ 无更改需要提交"
           else
-            git commit -m "Initialize Hugo site structure"
+            git commit -m "自动初始化Hugo站点结构
+            - 添加基础配置文件
+            - 集成Ananke主题
+            - 创建示例内容
+            - 设置内容模板"
             git push origin main
-            echo "Changes committed and pushed"
+            echo "✅ 更改已提交并推送"
           fi
 
-      - name: Debug - Final structure check
+      - name: Final debug information
         run: |
-          echo "Final directory structure:"
-          find . -type f -name "*.md" -o -name "*.toml" -o -name "*.yaml" -o -name "*.yml" | sort
-          echo "Theme submodule status:"
-          git submodule status
+          echo "=== 最终调试信息 ==="
+          echo "工作流完成时间: $(date)"
+          echo "最终目录结构:"
+          find . -name "*.md" -o -name "*.toml" -o -name "*.yaml" -o -name "*.yml" | sort
+          echo "主题状态:"
+          git submodule status 2>/dev/null || echo "无子模块"
+          echo "✅ 初始化工作流执行完成"
