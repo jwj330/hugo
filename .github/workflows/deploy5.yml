@@ -1,46 +1,92 @@
-name: Auto Deploy
+name: Auto Build and Deploy Hugo Site
+
 on:
   schedule:
-    - cron: "*/5 * * * *"  # 每5分钟运行一次
+    - cron: "*/5 * * * *"  # 每5分钟自动运行一次
   push:
-    branches: [main]
+    branches: [ "main" ]    # 当向 main 分支推送代码时也会触发
+  workflow_dispatch:        # 允许在网页上手动触发工作流
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      # 步骤1：检出仓库代码
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # 重要：确保主题子模块被拉取
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Setup Hugo
-      uses: peaceiris/actions-hugo@v2
-      with:
-        hugo-version: "latest"
+      # 步骤2：调试 - 检查目录结构
+      - name: Debug - Check directory structure
+        run: |
+          echo "=== 工作目录 ==="
+          pwd
+          echo "=== 初始文件列表 ==="
+          ls -la
+          echo "=== 检查 themes 目录 ==="
+          ls -la themes/ || echo "Themes directory not found"
 
-    - name: Generate random post
-      run: |
-        # 生成带时间戳的随机文章
-        echo "---" > content/post-$(date +%s).md
-        echo "title: 'Auto Post $(date +"%Y-%m-%d %H:%M")'" >> content/post-$(date +%s).md
-        echo "date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> content/post-$(date +%s).md
-        echo "---" >> content/post-$(date +%s).md
-        echo "This post was auto-generated at $(date)" >> content/post-$(date +%s).md
-        echo "[DEBUG] New post generated: content/post-$(date +%s).md"
+      # 步骤3：创建 content 目录（关键修复）
+      - name: Create content directory
+        run: |
+          echo "确保 content 目录存在..."
+          mkdir -p content
+          echo "Content directory status:"
+          ls -ld content/
 
-    - name: Build site
-      run: hugo --minify --debug
-      env:
-        HUGO_ENV: production
+      # 步骤4：安装特定版本的 Hugo
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: '0.125.7'  # 建议指定一个稳定版本
+          extended: true           # Stack 主题可能需要扩展版
 
-    - name: Deploy to Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        deploy_key: ${{ secrets.SSH_PRIVATE_KEY }}  # 使用 SSH 私钥
-        external_repository: jwj330/jwj330.github.io
-        publish_dir: ./public
-        keep_files: false
-        commit_message: "Auto update: $(date -u)"
-      env:
-        TZ: UTC  # 确保时间戳一致
+      # 步骤5：生成带时间戳的随机文章
+      - name: Generate random post
+        run: |
+          # 再次确保目录存在
+          mkdir -p content
+          TIMESTAMP=$(date +%s)
+          POST_FILE="content/post-$TIMESTAMP.md"
+          HUMAN_TIME=$(date -u +"%Y-%m-%d %H:%M UTC")
+
+          echo "[DEBUG] Generating post: $POST_FILE"
+
+          # 写入文章内容
+          cat << EOF > "$POST_FILE"
+          ---
+          title: "Auto Post $HUMAN_TIME"
+          date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          draft: false
+          categories: [ "Auto" ]
+          ---
+          This is an auto-generated post created by GitHub Actions at **$HUMAN_TIME**.
+
+          Timestamp: $TIMESTAMP
+          EOF
+
+          echo "[SUCCESS] Post generated successfully."
+          echo "=== Preview of $POST_FILE ==="
+          cat "$POST_FILE"
+
+      # 步骤6：构建 Hugo 站点
+      - name: Build Hugo site
+        run: |
+          echo "[INFO] Starting Hugo build..."
+          hugo --minify --verbose --buildDrafts=false
+          echo "[INFO] Build complete. Public directory contents:"
+          ls -la public/
+
+      # 步骤7：部署到 GitHub Pages 仓库
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          deploy_key: ${{ secrets.DEPLOY_KEY }}  # 使用您配置的 SSH 私钥
+          external_repository: jwj330/jwj330.github.io
+          publish_dir: ./public
+          keep_files: false
+          commit_message: "Auto update: $(date -u)"
+        env:
+          TZ: UTC  # 确保时间戳一致
