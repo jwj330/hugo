@@ -1,0 +1,51 @@
+name: Auto Build & Deploy
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # 每5分钟运行一次
+  workflow_dispatch:       # 允许手动触发
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Debug Info
+      run: echo "Job started at $(date)"
+      
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Hugo
+      uses: peaceiris/actions-hugo@v2
+      with:
+        hugo-version: 'latest'
+        extended: true
+        
+    - name: Generate New Post
+      run: |
+        # 调试信息
+        echo "Generating new post..."
+        POST_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        FILENAME=$(date -u +"%Y%m%d%H%M%S")
+        # 创建新文章
+        hugo new posts/$FILENAME.md
+        # 添加随机内容
+        echo "---" >> content/posts/$FILENAME.md
+        echo "auto_generated: true" >> content/posts/$FILENAME.md
+        echo "---\n\nThis post was auto-generated at $POST_DATE" >> content/posts/$FILENAME.md
+        # 调试输出
+        ls -l content/posts/
+        
+    - name: Build Site
+      run: |
+        echo "Building site..."
+        hugo --minify --buildDrafts -v
+        ls -l public/  # 调试输出
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        deploy_key: ${{ secrets.DEPLOY_KEY }}
+        external_repository: jwj330/jwj330.github.io
+        publish_dir: ./public
+        commit_message: "Auto-deploy: ${{ github.run_id }}"
