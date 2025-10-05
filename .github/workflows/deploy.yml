@@ -60,11 +60,14 @@ jobs:
         echo "📊 Build summary:"
         echo "Public directory size:"
         du -sh public/ || echo "No public directory"
-        
-    - name: Deploy to GitHub Pages
+          # 7. 部署到 GitHub Pages
+    - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
       with:
-        personal_token: ${{ secrets.PERSONAL_TOKEN }}
+        deploy_key: ${{ secrets.DEPLOY_KEY }}
         external_repository: jwj330/jwj330.github.io
         publish_dir: ./public
+        publish_branch: main
         keep_files: false
+          
+ 
