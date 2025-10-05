@@ -24,26 +24,28 @@ jobs:
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v2
         with:
-          hugo-version: 'latest'
+          hugo-version: '0.151.0'  # 指定已知可用的版本
           extended: true
 
       - name: Initialize Hugo site if not exists
         run: |
+          # 修复EOF格式问题
           if [ ! -f "config.toml" ] && [ ! -f "config.yaml" ] && [ ! -f "config.yml" ]; then
             echo "No Hugo config found, initializing new site..."
             hugo new site . --force
             echo "Hugo site initialized successfully"
             
-            # 创建基本配置文件
-            cat > config.toml << EOF
-            baseURL = "https://jwj330.github.io/"
-            languageCode = "en-us"
-            title = "My New Hugo Site"
-            theme = "ananke"
-            EOF
+            # 创建基本配置文件 - 修复EOF格式
+            cat << 'EOF' > config.toml
+baseURL = "https://jwj330.github.io/"
+languageCode = "en-us"
+title = "My New Hugo Site"
+theme = "ananke"
+EOF
             
-            # 添加主题作为submodule（使用流行的ananke主题）
+            # 添加主题作为submodule
             git submodule add https://github.com/theNewDynamic/gohugo-theme-ananke themes/ananke
+            echo "Added ananke theme as submodule"
           else
             echo "Hugo site already initialized"
           fi
@@ -51,7 +53,16 @@ jobs:
       - name: Create sample content
         run: |
           if [ ! -f "content/posts/welcome.md" ]; then
-            hugo new posts/welcome.md
+            mkdir -p content/posts
+            cat << 'EOF' > content/posts/welcome.md
+---
+title: "Welcome to My Hugo Site"
+date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+draft: false
+---
+
+This is a sample welcome post!
+EOF
             echo "Sample post created"
           fi
 
@@ -72,3 +83,5 @@ jobs:
         run: |
           echo "Final directory structure:"
           find . -type f -name "*.md" -o -name "*.toml" -o -name "*.yaml" -o -name "*.yml" | sort
+          echo "Theme submodule status:"
+          git submodule status
