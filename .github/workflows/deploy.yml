@@ -56,7 +56,7 @@ jobs:
     - name: Build site
       run: |
         echo "🔨 Building Hugo site..."
-        hugo --minify --verbose --logLevel debug
+        hugo --minify 
         echo "📊 Build summary:"
         echo "Public directory size:"
         du -sh public/ || echo "No public directory"
