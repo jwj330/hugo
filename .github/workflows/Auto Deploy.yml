@@ -10,15 +10,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      # 检出代码
+      # 检出代码（包含子模块）
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: recursive # 这行很重要，确保检出子模块
+          token: ${{ secrets.GITHUB_TOKEN }} # 添加这行以确保有足够权限
 
-      # 显式更新子模块
-      - name: Update Submodules
-        run: git submodule update --init --recursive
+      # 显式更新和初始化子模块（关键修复步骤）
+      - name: Update and init submodules
+        run: |
+          git submodule update --init --recursive
 
       # 安装 Hugo
       - name: Setup Hugo
@@ -27,9 +29,13 @@ jobs:
           hugo-version: '0.125.7'
           extended: true
 
-      # 调试：列出文件确认结构
-      - name: Debug - List files
-        run: find . -name "*.toml" -o -name "*.yaml" -o -name "*.yml" | head -10
+      # 调试：列出文件结构，确认主题存在
+      - name: Debug - Check theme directory
+        run: |
+          echo "检查主题目录内容："
+          ls -la themes/
+          echo "检查ananke主题具体文件："
+          ls -la themes/ananke/ || echo "ananke目录不存在或为空"
 
       # 每分钟生成新文章
       - name: Generate Post
@@ -45,7 +51,7 @@ jobs:
 
       # 构建静态站点
       - name: Build
-        run: hugo --minify -v # 添加-v查看详细日志
+        run: hugo --minify --logLevel info # 使用新的日志级别参数
 
       # 部署到 jwj330.github.io 仓库
       - name: Deploy
