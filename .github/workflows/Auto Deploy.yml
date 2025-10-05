@@ -16,6 +16,10 @@ jobs:
         with:
           submodules: recursive
 
+      # 显式更新子模块
+      - name: Update Submodules
+        run: git submodule update --init --recursive
+
       # 安装 Hugo
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v2
@@ -23,9 +27,14 @@ jobs:
           hugo-version: '0.125.7'
           extended: true
 
+      # 调试：列出文件确认结构
+      - name: Debug - List files
+        run: find . -name "*.toml" -o -name "*.yaml" -o -name "*.yml" | head -10
+
       # 每分钟生成新文章
       - name: Generate Post
         run: |
+          mkdir -p content/posts
           TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           FILE="content/posts/$(date +%s).md"
           echo "---" > $FILE
@@ -36,7 +45,7 @@ jobs:
 
       # 构建静态站点
       - name: Build
-        run: hugo --minify
+        run: hugo --minify -v # 添加-v查看详细日志
 
       # 部署到 jwj330.github.io 仓库
       - name: Deploy
