@@ -47,9 +47,9 @@ jobs:
       - name: Generate random post
         run: |
           # 再次确保目录存在
-          mkdir -p content
+          mkdir -p content/posts
           TIMESTAMP=$(date +%s)
-          POST_FILE="content/post-$TIMESTAMP.md"
+          POST_FILE="content/posts/p$TIMESTAMP.md"
           HUMAN_TIME=$(date -u +"%Y-%m-%d %H:%M UTC")
 
           echo "[DEBUG] Generating post: $POST_FILE"
