@@ -1,0 +1,60 @@
+name: Deploy to GitHub Pages
+
+on:
+  schedule:
+    - cron: '* * * * *' # 每分钟触发
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - name: Debug - Start workflow
+      run: echo "🚀 Workflow started at $(date)"
+      
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+      
+    - name: Setup Hugo
+      uses: peaceiris/actions-hugo@v2
+      with:
+        hugo-version: 'latest'
+        extended: false
+        
+    - name: Debug - Show directory structure
+      run: |
+        echo "📂 Current directory structure:"
+        ls -laR
+        
+    - name: Generate new post
+      run: |
+        TIMESTAMP=$(date +%Y%m%d%H%M%S)
+        echo "🕒 Generating post: helloworld$TIMESTAMP"
+        hugo new posts/helloworld$TIMESTAMP.md
+        echo "helloworld$TIMESTAMP" > content/posts/helloworld$TIMESTAMP.md
+        echo "✅ Generated content:"
+        cat content/posts/helloworld$TIMESTAMP.md
+        
+    - name: Build site
+      run: |
+        echo "🔨 Building Hugo site..."
+        hugo --minify --verbose
+        echo "📁 Public directory contents:"
+        ls -la public
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        personal_token: ${{ secrets.PERSONAL_TOKEN }}
+        external_repository: jwj330/jwj330.github.io
+        publish_dir: ./public
+        keep_files: false
+        publish_branch: main
+        commit_message: "Update: ${{ github.run_id }}"
+        
+    - name: Debug - Completion
+      run: echo "✅ Deployment completed at $(date)"
