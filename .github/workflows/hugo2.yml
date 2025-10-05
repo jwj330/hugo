@@ -1,0 +1,43 @@
+name: Initialize Hugo Site
+
+on:
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: 'latest'
+          extended: true  # 确保安装扩展版，以支持SASS/SCSS[6](@ref)
+
+      - name: Create Hugo Site Structure
+        run: |
+          hugo new site . --force
+          # 创建基础配置文件
+          echo 'baseURL = "https://jwj330.github.io/"' > hugo.toml
+          echo 'title = "My Hugo Site"' >> hugo.toml
+          echo 'theme = "ananke"' >> hugo.toml  # 可选：添加一个默认主题
+
+      - name: Create First Post
+        run: |
+          mkdir -p content/posts
+          echo '---' > content/posts/first-post.md
+          echo 'title: "Hello World!"' >> content/posts/first-post.md
+          echo 'date: $(date -Iseconds)' >> content/posts/first-post.md
+          echo 'draft: false' >> content/posts/first-post.md
+          echo '---' >> content/posts/first-post.md
+          echo '这是我的第一篇Hugo文章，部署成功啦！' >> content/posts/first-post.md
+
+      - name: Commit Initial Site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Initialize Hugo site structure"
+          git push
