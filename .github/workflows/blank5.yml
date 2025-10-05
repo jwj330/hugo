@@ -8,21 +8,25 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # 第一步：检出仓库代码，这是关键修复
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-          fetch-depth: 0
+          submodules: recursive  # 如果将来使用了主题子模块，需要这个
+          fetch-depth: 0         # 获取所有历史记录，为了.GitInfo
 
+      # 第二步：设置Hugo环境
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v2
         with:
           hugo-version: 'latest'
           extended: true
 
+      # 第三步：构建静态网站
       - name: Build
-        run: hugo --minify
+        run: hugo --minify  # 这行命令现在应该在检出代码后执行，所以能找到config.toml
 
+      # 第四步：部署到GitHub Pages仓库
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
