@@ -1,0 +1,46 @@
+name: Auto Deploy
+on:
+  schedule:
+    - cron: "*/5 * * * *"  # 每5分钟运行一次
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup Hugo
+      uses: peaceiris/actions-hugo@v2
+      with:
+        hugo-version: "latest"
+
+    - name: Generate random post
+      run: |
+        # 生成带时间戳的随机文章
+        echo "---" > content/post-$(date +%s).md
+        echo "title: 'Auto Post $(date +"%Y-%m-%d %H:%M")'" >> content/post-$(date +%s).md
+        echo "date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> content/post-$(date +%s).md
+        echo "---" >> content/post-$(date +%s).md
+        echo "This post was auto-generated at $(date)" >> content/post-$(date +%s).md
+        echo "[DEBUG] New post generated: content/post-$(date +%s).md"
+
+    - name: Build site
+      run: hugo --minify --debug
+      env:
+        HUGO_ENV: production
+
+    - name: Deploy to Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        deploy_key: ${{ secrets.SSH_PRIVATE_KEY }}  # 使用 SSH 私钥
+        external_repository: jwj330/jwj330.github.io
+        publish_dir: ./public
+        keep_files: false
+        commit_message: "Auto update: $(date -u)"
+      env:
+        TZ: UTC  # 确保时间戳一致
