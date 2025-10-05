@@ -1,4 +1,8 @@
 baseURL = "https://jwj330.github.io/"
 languageCode = "en-us"
 title = "My Hugo Site"
-theme = "mytheme"
+theme = "ananke"  # 使用现有主题或留空使用默认主题
+
+[params]
+  paginator_pages = 10
+  mainSections = ["posts"]
