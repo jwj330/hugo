@@ -1,4 +1,7 @@
-baseURL = 'https://jwj330.github.io/'
-languageCode = 'en-us'
-title = 'My Hugo Site'
-theme = 'ananke'
+baseURL = "https://jwj330.github.io/"
+languageCode = "en-us"
+title = "My Hugo Site"
+
+[module]
+  [[module.imports]]
+    path = "github.com/theNewDynamic/gohugo-theme-ananke"
