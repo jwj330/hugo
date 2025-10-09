@@ -1,6 +1,29 @@
 import os
 import subprocess
 import datetime
+import re
+
+def update_config(config_path, key, value):
+    """更新或添加配置项到 config.toml"""
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            content = f.read()
+    else:
+        content = ""
+    
+    # 检查键是否已存在
+    pattern = rf'^{key}\s*=\s*["\'](.*)["\']'
+    match = re.search(pattern, content, re.MULTILINE)
+    
+    if match:
+        # 替换现有值
+        new_content = re.sub(pattern, f'{key} = "{value}"', content, flags=re.MULTILINE)
+    else:
+        # 添加新键值对
+        new_content = content + f'\n{key} = "{value}"\n'
+    
+    with open(config_path, 'w') as f:
+        f.write(new_content)
 
 def main():
     print("🚀 开始初始化 Hugo 站点...")
@@ -17,22 +40,14 @@ def main():
                        'https://github.com/theNewDynamic/gohugo-theme-ananke.git', 
                        'themes/ananke'], check=True)
     
-    # 读取并更新配置文件
+    # 更新配置文件
     config_path = 'config.toml'
-    if os.path.exists(config_path):
-        config = toml.load(config_path)
-    else:
-        config = {}
     
     # 设置基本配置
-    config['baseURL'] = 'https://jwj330.github.io/'
-    config['languageCode'] = 'zh-cn'
-    config['title'] = '我的 Hugo 博客'
-    config['theme'] = 'ananke'
-    
-    # 写入配置
-    with open(config_path, 'w') as f:
-        toml.dump(config, f)
+    update_config(config_path, 'baseURL', 'https://jwj330.github.io/')
+    update_config(config_path, 'languageCode', 'zh-cn')
+    update_config(config_path, 'title', '我的 Hugo 博客')
+    update_config(config_path, 'theme', 'ananke')
     
     # 创建欢迎页面
     content_dir = 'content'
