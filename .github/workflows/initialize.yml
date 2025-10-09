@@ -1,0 +1,36 @@
+name: Initialize Hugo Site
+
+on:
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install Hugo
+      run: |
+        sudo apt-get update
+        sudo apt-get install hugo
+        
+    - name: Run initialization script
+      run: python script/initialize.py
+      env:
+        GH_TOKEN: ${{ secrets.ACTIONS_TOKEN }}  # 需要创建的secret
+        
+    - name: Deploy to GitHub Pages
+      run: |
+        cd public
+        git init
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "Initial commit"
+        git push --force "https://${{ secrets.ACTIONS_TOKEN }}@github.com/jwj330/jwj330.github.io.git" main
