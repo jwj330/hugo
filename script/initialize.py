@@ -1,7 +1,6 @@
 import os
 import subprocess
 import datetime
-import toml
 
 def main():
     print("🚀 开始初始化 Hugo 站点...")
