@@ -9,21 +9,19 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Set up Python
-      uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        submodules: recursive  # 确保主题子模块也被检出
         
-    - name: Install Hugo
-      run: |
-        sudo apt-get update
-        sudo apt-get install hugo
+    - name: Setup Hugo
+      uses: peaceiris/actions-hugo@v2
+      with:
+        hugo-version: 'latest'
+        extended: true
         
     - name: Run initialization script
       run: python script/initialize.py
       env:
-        GH_TOKEN: ${{ secrets.ACTIONS_TOKEN }}  # 需要创建的secret
+        GH_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
         
     - name: Deploy to GitHub Pages
       run: |
@@ -31,6 +29,7 @@ jobs:
         git init
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
+        git checkout -b main  # 确保使用 main 分支
         git add .
         git commit -m "Initial commit"
         git push --force "https://${{ secrets.ACTIONS_TOKEN }}@github.com/jwj330/jwj330.github.io.git" main
